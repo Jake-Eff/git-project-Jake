@@ -10,13 +10,26 @@ import java.nio.file.Path;
 import java.util.HexFormat;
 
 public class Gitinitialize{
+    
+    private File git;
+    private File objects;
+    private File index;
+    private File head;
+    
     public static void main(String[] args) {
-        instantiate();
+        
+        Gitinitialize newGit = new Gitinitialize();
+        
         try {
             System.out.println(hashFile("Hello.txt"));
+            newGit.createBlob("Hello.txt");
         } catch (Exception e) {
             System.out.println("oops");
         }
+    }
+
+    public Gitinitialize(){
+        instantiate();
     }
 
     public static void instantiate(){
@@ -69,5 +82,26 @@ public class Gitinitialize{
         byte[] hash = digest.digest(fileBytes);
 
         return HexFormat.of().formatHex(hash);
+    }
+    
+    public void createBlob(String filePath) throws IOException{
+       try {
+        
+        String hash = hashFile(filePath);
+        File newFile = new File(objects, hash);
+        newFile.createNewFile();
+        
+        BufferedReader fileReader = new BufferedReader(new FileReader(filePath));
+        String readFile = fileReader.readLine();
+        fileReader.close();
+
+        FileWriter fileWriter = new FileWriter(newFile.toPath().toString());
+        fileWriter.write(readFile);
+        fileWriter.close();
+
+        
+       } catch (Exception e) {
+        System.out.println("There's an error");
+       }
     }
 }
