@@ -9,57 +9,59 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HexFormat;
 
-public class Gitinitialize{
-    
+public class GitInitialize {
+
     private File git;
     private File objects;
     private File index;
-    private File head;
-    
+    private File Head;
+
     public static void main(String[] args) {
-        
-        Gitinitialize newGit = new Gitinitialize();
-        
+
+        GitInitialize newGit = new GitInitialize();
+
         try {
             System.out.println(hashFile("Hello.txt"));
             newGit.createBlob("Hello.txt");
+            newGit.updateIndex("Hello.txt");
         } catch (Exception e) {
             System.out.println("oops");
         }
     }
 
-    public Gitinitialize(){
+    public GitInitialize() {
+
         instantiate();
     }
 
-    public static void instantiate(){
+    public void instantiate() {
         try {
             int count = 0;
-            File git = new File("git/");
-            if(!git.mkdir()){
+            git = new File("git/");
+            if (!git.mkdir()) {
                 count++;
             }
-            File objects = new File("objects/");
-            if(!objects.mkdir()){
+            objects = new File(git, "objects/");
+            if (!objects.mkdir()) {
                 count++;
             }
-            File index = new File("index");
-            if(!index.createNewFile()){
+            index = new File(git, "index");
+            if (!index.createNewFile()) {
                 count++;
             }
-            File head = new File("head");
-            if(!head.createNewFile()){
+            Head = new File(git, "Head");
+            if (!Head.createNewFile()) {
                 count++;
             }
-            if(count == 4){
+            if (count == 4) {
                 System.out.println("Git Repository Already Exists");
-            } else{
+            } else {
                 System.out.println("Git Repository Created");
             }
         } catch (Exception e) {
             System.out.println("There's an error.");
         }
-        
+
     }
 
     public static String hashFile(String filePath) throws IOException {
@@ -83,25 +85,47 @@ public class Gitinitialize{
 
         return HexFormat.of().formatHex(hash);
     }
-    
-    public void createBlob(String filePath) throws IOException{
-       try {
-        
-        String hash = hashFile(filePath);
-        File newFile = new File(objects, hash);
-        newFile.createNewFile();
-        
-        BufferedReader fileReader = new BufferedReader(new FileReader(filePath));
-        String readFile = fileReader.readLine();
-        fileReader.close();
 
-        FileWriter fileWriter = new FileWriter(newFile.toPath().toString());
-        fileWriter.write(readFile);
-        fileWriter.close();
+    public void createBlob(String filePath) throws IOException {
+        try {
 
-        
-       } catch (Exception e) {
-        System.out.println("There's an error");
-       }
+            String hash = hashFile(filePath);
+            File newFile = new File(objects, hash);
+            newFile.createNewFile();
+
+            BufferedReader fileReader = new BufferedReader(new FileReader(filePath));
+            String readFile = fileReader.readLine();
+            fileReader.close();
+
+            FileWriter fileWriter = new FileWriter(newFile.toPath().toString());
+            fileWriter.write(readFile);
+            fileWriter.close();
+
+
+        } catch (Exception e) {
+            System.out.println("There's an error");
+        }
+    }
+
+    public void updateIndex(String filePath) throws IOException {
+        try {
+            String hash = hashFile(filePath);
+
+            BufferedReader fileReader =
+                    new BufferedReader(new FileReader(index.toPath().toString()));
+            FileWriter fileWriter = new FileWriter(index.toPath().toString());
+
+            if (fileReader.readLine() == null) {
+                fileWriter.write(hash + " " + filePath);
+            } else {
+                fileWriter.write("\n" + hash + " " + filePath);
+            }
+
+            fileReader.close();
+            fileWriter.close();
+
+        } catch (Exception e) {
+            System.out.println("There's an error");
+        }
     }
 }
