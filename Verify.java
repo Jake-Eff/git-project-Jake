@@ -5,9 +5,9 @@ import java.nio.file.Path;
 
 public class Verify {
     public static void main(String[] args) throws IOException {
-    GitInitialize git = new GitInitialize();        
-    // Recreating git should not reinitialize the repository.
-        git = new GitInitialize(); 
+        GitInitialize git = new GitInitialize();
+        // Recreating git should not reinitialize the repository.
+        git = new GitInitialize();
         try {
             System.out.println("SHA-1 of Verify.txt is 9a26e18fbc5b2435f4cabb1e91b6e780bb0d8e4d");
             git.createBlob("Hello.txt");
@@ -41,7 +41,7 @@ public class Verify {
             System.out.println("File error: " + e.getMessage());
         }
 
-        //commit tester
+        // commit tester
         Files.writeString(Path.of("Hello.txt"), "Hello\n");
         Files.createDirectories(Path.of("test"));
         Files.writeString(Path.of("test/awesome.txt"), "Awesome\n");
@@ -50,11 +50,11 @@ public class Verify {
         GitInitialize coolgit = new GitInitialize();
         coolgit.instantiate();
         System.out.println("hashFile" + GitInitialize.hashFile("Hello.txt"));
-        for (String file : new String[]{"Hello.txt", "test/awesome.txt"}) {
+        for (String file : new String[] { "Hello.txt", "test/awesome.txt" }) {
             coolgit.createBlob(file);
             System.out.println("Blob " + file + Files.exists(
                     Path.of("git/objects", GitInitialize.hashFile(file))));
-                    coolgit.updateIndex(file);
+            coolgit.updateIndex(file);
         }
         System.out.println("Index" + Files.readString(Path.of("git/index")));
 
@@ -87,5 +87,10 @@ public class Verify {
         Files.writeString(Path.of("Hello.txt"), "Changed\n");
         GitInitialize.GitWrapper.checkout(second);
         System.out.println("Restored: " + Files.readString(Path.of("Hello.txt")).equals("Hello\n"));
+        GitInitialize.GitWrapper.createBranch("Test");
+        GitInitialize.GitWrapper.checkout("Test");
+        System.out.println("Update: " + GitInitialize.GitWrapper.commit("Asher", "Test")
+                .equals(Files.readString(Path.of("git/refs/heads/Test"))));
+        System.out.println("head: " + Files.readString(Path.of("git/HEAD")));
     }
 }
