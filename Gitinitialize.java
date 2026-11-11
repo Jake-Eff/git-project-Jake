@@ -46,7 +46,15 @@ public class GitInitialize {
             if (!headFile.createNewFile()) {
                 filesThatDidntHaveToBeRecreated++;
             }
-            if (filesThatDidntHaveToBeRecreated == 4) {
+            File refsFolder = new File(gitFolder, "refs");
+            if (!refsFolder.mkdir()) {
+                filesThatDidntHaveToBeRecreated++;
+            }
+            File headsFolder = new File(refsFolder, "heads");
+            if (!headsFolder.mkdir()) {
+                filesThatDidntHaveToBeRecreated++;
+            }
+            if (filesThatDidntHaveToBeRecreated == 6) {
                 System.out.println("Git Repository Already Exists");
             } else {
                 System.out.println("Git Repository Created");
@@ -288,10 +296,26 @@ public class GitInitialize {
                 System.out.println("noo root");
                 return "";
             } // checks root exists
-            String parentHash = "";
-            if (headFile.exists() && headFile.length() > 0) {
-                parentHash = Files.readString(headFile.toPath()).trim();
+
+            FileReader headReader = new FileReader(headFile);
+            BufferedReader fileReader = new BufferedReader(headReader);
+            String head = fileReader.readLine();
+            fileReader.close();
+            File current = headFile;
+            if (head != null && head.indexOf("ref: ") == 0) {
+                current = new File(gitFolder, head.substring(5));
             }
+            String parentHash = "";
+            if (current.exists() && current.length() > 0) {
+                FileReader parentReader = new FileReader(current);
+                fileReader = new BufferedReader(parentReader);
+                parentHash = fileReader.readLine().trim();
+                fileReader.close();
+            }
+            // String parentHash = "";
+            // if (headFile.exists() && headFile.length() > 0) {
+            // parentHash = Files.readString(headFile.toPath()).trim();
+            // }
             // git head is used for parenthash, the previous commits hash, if its empty it
             // days """
 
@@ -312,8 +336,10 @@ public class GitInitialize {
                     MessageDigest.getInstance("SHA-1").digest(content.getBytes(StandardCharsets.UTF_8)));
             Path commitPath = new File(objectsFolder, commitHash).toPath();
             Files.writeString(commitPath, content, StandardCharsets.UTF_8);
-            Files.writeString(headFile.toPath(), commitHash, StandardCharsets.UTF_8);
             // hash and put hash for commit for head
+            FileWriter fileWriter = new FileWriter(current);
+            fileWriter.write(commitHash);
+            fileWriter.close();
             return commitHash;
 
         } catch (Exception e) {
@@ -348,6 +374,16 @@ public class GitInitialize {
 
         public static void checkout(String commitHash) {
             try {
+                String head = commitHash;
+                File branchFile = new File("git/refs/heads/" + commitHash);
+                if (branchFile.isFile()) {
+                    head = "ref: refs/heads/" + commitHash;
+                    FileReader branchReader = new FileReader(branchFile);
+                    BufferedReader branchFileReader = new BufferedReader(branchReader);
+                    commitHash = branchFileReader.readLine();
+                    branchFileReader.close();
+                }
+
                 FileReader commitReader = new FileReader("git/objects/" + commitHash);
                 BufferedReader fileReader = new BufferedReader(commitReader);
                 String treeHash = fileReader.readLine().substring(6);
@@ -358,30 +394,52 @@ public class GitInitialize {
                 fileWriter.close();
 
                 fileWriter = new FileWriter(git.headFile);
-                fileWriter.write(commitHash);
+                fileWriter.write(head);
                 fileWriter.close();
             } catch (Exception e) {
                 System.out.println("error");
             }
         }
 
-        private static void restoreTree(String treeHash, String dirPath, FileWriter indexWriter) throws IOException{
+        private static void restoreTree(String treeHash, String dirPath, FileWriter indexWriter) throws IOException {
             FileReader treeReader = new FileReader("git/objects/" + treeHash);
             BufferedReader fileReader = new BufferedReader(treeReader);
-            while(fileReader.ready()){
+            while (fileReader.ready()) {
                 String[] parts = fileReader.readLine().split(" ", 3);
                 String filePath = dirPath + parts[2];
-                if(parts[0].equals("tree")){
+                if (parts[0].equals("tree")) {
                     File dir = new File(filePath);
                     dir.mkdir();
                     restoreTree(parts[1], filePath + "/", indexWriter);
-                } else{
+                } else {
                     byte[] bytes = Files.readAllBytes(Path.of("git/objects/" + parts[1]));
                     Files.write(Path.of(filePath), bytes);
                     indexWriter.write(parts[1] + " " + filePath + "\n");
                 }
             }
             fileReader.close();
+        }
+
+        public static void createBranch(String branchName) {
+            try {
+                File branchFile = new File("git/refs/heads/" + branchName);
+                FileReader headReader = new FileReader(git.headFile);
+                BufferedReader fileReader = new BufferedReader(headReader);
+                String commitHash = fileReader.readLine();
+                fileReader.close();
+                if (commitHash != null && commitHash.indexOf("ref: ") == 0) {
+                    File current = new File("git/" + commitHash.substring(5));
+                    FileReader branchReader = new FileReader(current);
+                    fileReader = new BufferedReader(branchReader);
+                    commitHash = fileReader.readLine();
+                    fileReader.close();
+                }
+                FileWriter fileWriter = new FileWriter(branchFile);
+                fileWriter.write(commitHash);
+                fileWriter.close();
+            } catch (Exception e) {
+                System.out.println("error");
+            }
         }
     }
 
