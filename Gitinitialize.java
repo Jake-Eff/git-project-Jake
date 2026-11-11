@@ -51,8 +51,7 @@ public class GitInitialize {
             } else {
                 System.out.println("Git Repository Created");
             }
-        } 
-        catch (Exception e) {
+        } catch (Exception e) {
             System.out.println("There's an error.");
         }
 
@@ -117,7 +116,7 @@ public class GitInitialize {
                 if (indexString.toString().equals("")) {
                     indexString.append(hash + " " + filePath);
                 } else {
-                    indexString.append("\n" + hash + " " +  filePath);
+                    indexString.append("\n" + hash + " " + filePath);
                 }
 
             }
@@ -165,7 +164,7 @@ public class GitInitialize {
         // treeWritten will be made true when we overwrite one line with the tree hash
         // to ensure that we don't duplicate entries.
 
-        //ash here, this code is funky and not fresh, I fixed it up enough to run :>
+        // ash here, this code is funky and not fresh, I fixed it up enough to run :>
         boolean treeWritten = false;
         BufferedReader fileReader = new BufferedReader(new FileReader(workingList));
         StringBuilder workingListStringBuilder = new StringBuilder();
@@ -180,12 +179,12 @@ public class GitInitialize {
                 parent = line.substring(spaceIndex + 1, slashIndex);
             }
 
-if (parent.equals(dir) && !treeWritten) {
-    treeWritten = true;
-    workingListStringBuilder.append("\ntree " + treehash + " " + dir);
-} else if (!parent.equals(dir)) {
-    workingListStringBuilder.append("\n" + line);
-}
+            if (parent.equals(dir) && !treeWritten) {
+                treeWritten = true;
+                workingListStringBuilder.append("\ntree " + treehash + " " + dir);
+            } else if (!parent.equals(dir)) {
+                workingListStringBuilder.append("\n" + line);
+            }
         }
         fileReader.close();
         BufferedWriter fileWriter = new BufferedWriter(new FileWriter(workingList));
@@ -197,15 +196,15 @@ if (parent.equals(dir) && !treeWritten) {
         try {
             File workingList = createWorkingList(indexFile);
             String leafMost = findLeafMostDirectory(workingList);
-                while (!leafMost.isEmpty()) {
+            while (!leafMost.isEmpty()) {
 
                 String treeHash = createTree(workingList, leafMost);
                 rewriteWorkingList(workingList, treeHash, leafMost);
                 leafMost = findLeafMostDirectory(workingList);
 
             }
-        String rootHash = createTree(workingList, "");            
-        workingList.delete();
+            String rootHash = createTree(workingList, "");
+            workingList.delete();
             return rootHash;
         } catch (Exception e) {
             System.out.println("File error: " + e.getMessage());
@@ -223,12 +222,12 @@ if (parent.equals(dir) && !treeWritten) {
             String line = fileReader.readLine();
             lines.add(line);
         }
-            // Creating a comparator to compare by path. If you're wondering where I got
-            // this from:
-            // https://www.baeldung.com/java-comparator-comparable
-            Comparator<String> byPath = (String s1, String s2) -> -s1.substring(s1.indexOf(" ") + 1)
-                    .compareTo(s2.substring(s2.indexOf(" ") + 1));
-            Collections.sort(lines, byPath);
+        // Creating a comparator to compare by path. If you're wondering where I got
+        // this from:
+        // https://www.baeldung.com/java-comparator-comparable
+        Comparator<String> byPath = (String s1, String s2) -> -s1.substring(s1.indexOf(" ") + 1)
+                .compareTo(s2.substring(s2.indexOf(" ") + 1));
+        Collections.sort(lines, byPath);
         for (int i = 0; i < lines.size(); i++) {
             fileWriter.write("blob " + lines.get(i));
             if (i != lines.size() - 1) {
@@ -240,60 +239,61 @@ if (parent.equals(dir) && !treeWritten) {
         return workingList;
     }
 
- public String createTree(File workingList, String dirPath) {
-    try {
-        BufferedReader fileReader = new BufferedReader(new FileReader(workingList));
-        ArrayList<String> fileList = new ArrayList<String>();
-        while (fileReader.ready()) {
-            String line = fileReader.readLine();
-            // Take the last slash we find because everything before that is the directory
-            // path
-            int lastSlashIndex = line.lastIndexOf("/");
-            // Taking the index of the space to see where the directory path begins.
-            int spaceIndex = line.indexOf(" ", line.indexOf(" ") + 1);
-            String path = line.substring(spaceIndex + 1);
-            String parent = "";
-            if (lastSlashIndex != -1) {                 // ← only this line changed
-                parent = line.substring(spaceIndex + 1, lastSlashIndex);
+    public String createTree(File workingList, String dirPath) {
+        try {
+            BufferedReader fileReader = new BufferedReader(new FileReader(workingList));
+            ArrayList<String> fileList = new ArrayList<String>();
+            while (fileReader.ready()) {
+                String line = fileReader.readLine();
+                // Take the last slash we find because everything before that is the directory
+                // path
+                int lastSlashIndex = line.lastIndexOf("/");
+                // Taking the index of the space to see where the directory path begins.
+                int spaceIndex = line.indexOf(" ", line.indexOf(" ") + 1);
+                String path = line.substring(spaceIndex + 1);
+                String parent = "";
+                if (lastSlashIndex != -1) { // ← only this line changed
+                    parent = line.substring(spaceIndex + 1, lastSlashIndex);
+                }
+                if (parent.equals(dirPath)) {
+                    fileList.add(line.substring(0, spaceIndex + 1) + new File(path).getName());
+                }
             }
-            if (parent.equals(dirPath)) {
-                fileList.add(line.substring(0, spaceIndex + 1) + new File(path).getName());
-            }
-        }
-        fileReader.close();
+            fileReader.close();
 
-        File newTree = new File("git/objects/newTree");
-        BufferedWriter fileWriter = new BufferedWriter(new FileWriter("git/objects/newTree"));
-        for (int i = 0; i < fileList.size(); i++) {
-            fileWriter.write(fileList.get(i));
-            if (i < fileList.size() - 1) {
-                // This is the last file
-                fileWriter.write("\n");
+            File newTree = new File("git/objects/newTree");
+            BufferedWriter fileWriter = new BufferedWriter(new FileWriter("git/objects/newTree"));
+            for (int i = 0; i < fileList.size(); i++) {
+                fileWriter.write(fileList.get(i));
+                if (i < fileList.size() - 1) {
+                    // This is the last file
+                    fileWriter.write("\n");
+                }
             }
+            fileWriter.close();
+            // Rehashing the tree now and changing name
+            String hash = hashFile("git/objects/newTree");
+            newTree.renameTo(new File("git/objects/" + hash));
+            return hash;
+        } catch (Exception e) {
+            System.out.println("File error: " + e.getMessage());
         }
-        fileWriter.close();
-        // Rehashing the tree now and changing name
-        String hash = hashFile("git/objects/newTree");
-        newTree.renameTo(new File("git/objects/" + hash));
-        return hash;
-    } catch (Exception e) {
-        System.out.println("File error: " + e.getMessage());
+        return "";
     }
-    return "";
-}
 
-       public String commit(String author, String message) {
+    public String commit(String author, String message) {
         try {
             String rootTreeHash = createTreesFromIndex();
             if (rootTreeHash == null || rootTreeHash.isEmpty()) {
                 System.out.println("noo root");
                 return "";
-            } //checks root exists
+            } // checks root exists
             String parentHash = "";
             if (headFile.exists() && headFile.length() > 0) {
                 parentHash = Files.readString(headFile.toPath()).trim();
             }
-//git head is used for parenthash, the previous commits hash, if its empty it days """
+            // git head is used for parenthash, the previous commits hash, if its empty it
+            // days """
 
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
             String date = LocalDateTime.now().format(formatter);
@@ -307,13 +307,13 @@ if (parent.equals(dir) && !treeWritten) {
             commitContent.append("message: ").append(message);
 
             String content = commitContent.toString();
-//just make all the commit parts and jam them toghter into commitcontent
+            // just make all the commit parts and jam them toghter into commitcontent
             String commitHash = HexFormat.of().formatHex(
                     MessageDigest.getInstance("SHA-1").digest(content.getBytes(StandardCharsets.UTF_8)));
             Path commitPath = new File(objectsFolder, commitHash).toPath();
             Files.writeString(commitPath, content, StandardCharsets.UTF_8);
             Files.writeString(headFile.toPath(), commitHash, StandardCharsets.UTF_8);
-// hash and put hash for commit for head
+            // hash and put hash for commit for head
             return commitHash;
 
         } catch (Exception e) {
@@ -322,8 +322,9 @@ if (parent.equals(dir) && !treeWritten) {
         }
     }
 
-        public class GitWrapper {
+    public class GitWrapper {
         private static final GitInitialize git = new GitInitialize();
+
         public static void init() {
             new GitInitialize();
         }
@@ -346,7 +347,41 @@ if (parent.equals(dir) && !treeWritten) {
         }
 
         public static void checkout(String commitHash) {
-            System.out.println("checkout" + commitHash);
+            try {
+                FileReader commitReader = new FileReader("git/objects/" + commitHash);
+                BufferedReader fileReader = new BufferedReader(commitReader);
+                String treeHash = fileReader.readLine().substring(6);
+                fileReader.close();
+
+                FileWriter fileWriter = new FileWriter(git.indexFile);
+                restoreTree(treeHash, "", fileWriter);
+                fileWriter.close();
+
+                fileWriter = new FileWriter(git.headFile);
+                fileWriter.write(commitHash);
+                fileWriter.close();
+            } catch (Exception e) {
+                System.out.println("error");
+            }
+        }
+
+        private static void restoreTree(String treeHash, String dirPath, FileWriter indexWriter) throws IOException{
+            FileReader treeReader = new FileReader("git/objects/" + treeHash);
+            BufferedReader fileReader = new BufferedReader(treeReader);
+            while(fileReader.ready()){
+                String[] parts = fileReader.readLine().split(" ", 3);
+                String filePath = dirPath + parts[2];
+                if(parts[0].equals("tree")){
+                    File dir = new File(filePath);
+                    dir.mkdir();
+                    restoreTree(parts[1], filePath + "/", indexWriter);
+                } else{
+                    byte[] bytes = Files.readAllBytes(Path.of("git/objects/" + parts[1]));
+                    Files.write(Path.of(filePath), bytes);
+                    indexWriter.write(parts[1] + " " + filePath + "\n");
+                }
+            }
+            fileReader.close();
         }
     }
 
