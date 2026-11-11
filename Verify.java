@@ -84,6 +84,8 @@ public class Verify {
         System.out.println(Files.readString(Path.of("git/objects", second)));
         System.out.println("HEAD: " + Files.readString(Path.of("git/HEAD")));
         System.out.println("GitWrapper.checkout:");
+        Files.writeString(Path.of("Hello.txt"), "Changed\n");
         GitInitialize.GitWrapper.checkout(second);
+        System.out.println("Restored: " + Files.readString(Path.of("Hello.txt")).equals("Hello\n"));
     }
 }
